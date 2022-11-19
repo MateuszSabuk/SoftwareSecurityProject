@@ -116,7 +116,6 @@ class MMainWindow(QMainWindow):
                     if test["id"] == checkbox.objectName():
                         functionsToRun.append(test["function"])
         for fun in functionsToRun:
-            print(end="" "Test: ")
-            print("Test return:", fun(url))
+            fun(url)
 
 # End of MMainWindow class
