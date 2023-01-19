@@ -2,31 +2,6 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QPlainTextEdit, QGroupBox, QCheckBox
 from PyQt5.QtCore import Qt
 
-# class _TopBarButton(QPushButton):
-#     def __init__(self, parent):
-#         super().__init__(parent)
-#         self.parent = parent
-#         self.setGeometry()
-
-
-# class _TopBar(QLabel):
-#     def __init__(self, parent):
-#         super().__init__(parent)
-#         self.parent = parent
-#
-#     def mousePressEvent(self, e):
-#         if e.button() == Qt.LeftButton:
-#             if self.parent.press_control == 0:
-#                 self.pos = e.pos()
-#                 self.main_pos = self.parent.pos()
-#         super().mousePressEvent(e)
-#
-#     def mouseMoveEvent(self, e):
-#         if self.parent.cursor().shape() == Qt.ArrowCursor:
-#             self.last_pos = e.pos() - self.pos
-#             self.main_pos += self.last_pos
-#             self.parent.move(self.main_pos)
-#         super(_TopBar, self).mouseMoveEvent(e)
 
 class _URLInput(QPlainTextEdit):
     def __init__(self, parent):
@@ -53,12 +28,12 @@ class _StartScanButton(QPushButton):
 
 # Main
 class MMainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, parent=None):
         super().__init__()
         self.central = QWidget()
         self.setWindowTitle("Scanner project")
         self.setWindowIcon(QIcon('mQtWrapper\\windowIcon.png'))
-
+        self.wrapper = parent
         self.vbox = QVBoxLayout(self.central)
 
         # # If I want to add my own top bar
@@ -91,7 +66,7 @@ class MMainWindow(QMainWindow):
         self.resize(800, 500)
 
         # Get style from css
-        with open('mQtWrapper\\mainWindow.css', 'r') as style:
+        with open(r'mQtWrapper\mainWindow.css', 'r') as style:
             self.setStyleSheet(style.read())
 
         # Logic functions
@@ -105,17 +80,30 @@ class MMainWindow(QMainWindow):
         self.update()
 
     def startScan(self):
+        pdf = self.wrapper.pdf
+
         url = self.findChild(_URLInput).toPlainText()
 
         # TODO MATEUSZ: validate url here
 
-        functionsToRun = []
+        testsToRun = []
         for checkbox in self.findChildren(QCheckBox):
             if checkbox.isChecked():
                 for test in self.tests:
                     if test["id"] == checkbox.objectName():
-                        functionsToRun.append(test["function"])
-        for fun in functionsToRun:
-            fun(url)
+                        testsToRun.append(test)
+        pdf.addP(f"Checked url: {url}")
+        pdf.addH("Tests to be done:")
+        pdf.pdf.add_page()
+
+        for test in testsToRun:
+            index = str(testsToRun.index(test) + 1)
+            print(f"Running test {index}/{len(testsToRun)}: \"{test['name']}\"")
+            try:
+                pdf.addH(test["name"])
+                test["function"](url, pdf)
+                pdf.generate()
+            except:
+                print(f"Test {index} failed - something went wrong")
 
 # End of MMainWindow class

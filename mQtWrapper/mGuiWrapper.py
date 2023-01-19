@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QApplication
 from mQtWrapper import mMainWindow
+from mQtWrapper.pdfGen import PdfGen
 
 
 class MGuiWrapper:
     def __init__(self):
         self.app = QApplication([])
-        self.window = mMainWindow.MMainWindow()
+        self.window = mMainWindow.MMainWindow(self)
+        self.pdf = PdfGen()
 
     def run(self):
         self.window.show()
