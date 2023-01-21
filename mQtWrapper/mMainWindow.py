@@ -1,12 +1,14 @@
 import concurrent.futures
+import datetime
+import sys
 from concurrent.futures import Future
 from threading import Thread
 from urllib.parse import urlparse
 
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QPlainTextEdit, QGroupBox, QCheckBox, \
-    QSplitter, QScrollArea, QMessageBox
-from PyQt5.QtCore import Qt
+    QSplitter, QScrollArea, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QTextEdit
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from mUtilities.DataBaseHandler import DataBaseHandler
 from mUtilities.WebCrawler import WebCrawler
@@ -32,6 +34,9 @@ class _TestGroupBox(QGroupBox):
         super().__init__(parent)
         self.parent = parent
         self.vbox = QVBoxLayout()
+        self.vbox.setAlignment(Qt.AlignTop)
+        self.vbox.setSpacing(5)
+        self.vbox.setContentsMargins(10, 10, 10, 10)
         self.setLayout(self.vbox)
 
 
@@ -43,14 +48,74 @@ class _StartScanButton(QPushButton):
         self.setText("Start test")
 
 
+class _UrlTable(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["URL", "Start Time", "End Time", "Elapsed Time", "Status", "Reason"])
+        self.table.setColumnWidth(0, 350)
+        self.table.setColumnWidth(1, 150)
+        self.table.setColumnWidth(2, 150)
+        self.table.setColumnWidth(3, 150)
+        self.table.setColumnWidth(4, 100)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.table)
+        self.setLayout(self.layout)
+
+    def add_url_to_table(self, url_dict):
+        row_count = self.table.rowCount()
+        self.table.insertRow(row_count)
+        self.table.setItem(row_count, 0, QTableWidgetItem(url_dict["url"]))
+        self.table.setItem(row_count, 1, QTableWidgetItem(str(datetime.datetime.fromtimestamp(int(url_dict["start_time"])))))
+        self.table.setItem(row_count, 2, QTableWidgetItem(str(datetime.datetime.fromtimestamp(int(url_dict["end_time"])))))
+        self.table.setItem(row_count, 3, QTableWidgetItem(str(url_dict["elapsed"])))
+        self.table.setItem(row_count, 4, QTableWidgetItem(str(url_dict["status"])))
+        self.table.setItem(row_count, 5, QTableWidgetItem(url_dict["reason"]))
+
+    def clear_table(self):
+        for i in range(self.table.rowCount(), -1, -1):
+            self.table.removeRow(i)
+
+
+class _ConsoleWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.text_edit = QTextEdit()
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setLineWrapMode(QTextEdit.NoWrap)
+
+        sys.stdout = self
+        layout = QVBoxLayout()
+        layout.addWidget(self.text_edit)
+
+        self.setLayout(layout)
+
+    def write(self, text):
+        self.text_edit.append(text)
+        cursor = self.text_edit.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        self.text_edit.setTextCursor(cursor)
+
+    def __del__(self):
+        sys.stdout = sys.__stdout__
+
+
 # Main
 class MMainWindow(QMainWindow):
+    add_log_signal = pyqtSignal(dict)
+    dbh = DataBaseHandler()
+
     def __init__(self, parent=None):
         super().__init__()
         self.cancel = False
         self.run_future = None
         self.web_crawler = None
         self.tests_to_run = []
+
+        self.add_log_signal.connect(self.add_log)
 
         self.central = QWidget()
         self.setWindowTitle("Scanner project")
@@ -64,8 +129,17 @@ class MMainWindow(QMainWindow):
         top_section = QSplitter(Qt.Horizontal)
         window_splitter.addWidget(top_section)
 
-        bottom_section = QWidget()
-        window_splitter.addWidget(bottom_section)
+        self.bottom_section = QSplitter(Qt.Horizontal)
+        self.url_table = _UrlTable()
+        self.bottom_section.addWidget(self.url_table)
+        self.console = _ConsoleWidget()
+        self.bottom_section.addWidget(self.console)
+        window_splitter.addWidget(self.bottom_section)
+
+        self.console.show()
+
+        print("hello")
+
 
         # Create the top-left section and add it to the top section
         top_left_section = QWidget()
@@ -86,13 +160,14 @@ class MMainWindow(QMainWindow):
         self.crawl_first_check_box = QCheckBox("Crawl first")
         self.crawl_first_check_box.setChecked(True)
         top_right_section.layout().addWidget(self.crawl_first_check_box)
+        self.run_from_db_check_box = QCheckBox("Run from existing db")
+        self.run_from_db_check_box.setChecked(False)
+        self.run_from_db_check_box.setEnabled(False)
+        top_right_section.layout().addWidget(self.run_from_db_check_box)
 
         # Adding widgets
 
         self.testGroupBox = _TestGroupBox(self)
-        self.testGroupBox.vbox.setAlignment(Qt.AlignTop)
-        self.testGroupBox.vbox.setSpacing(5)
-        self.testGroupBox.vbox.setContentsMargins(10, 10, 10, 10)
         # self.testGroupBox.setTitle("Available tests")
 
         scroll_area = QScrollArea()
@@ -110,6 +185,7 @@ class MMainWindow(QMainWindow):
 
         self.setCentralWidget(self.central)
 
+        self.bottom_section.setSizes([600, 400])
         window_splitter.setSizes([300, 200])
 
         # Get style from css
@@ -125,6 +201,7 @@ class MMainWindow(QMainWindow):
         event.ignore()
 
         if result == QMessageBox.Yes:
+            sys.stdout = sys.__stdout__
             self.stop_scan()
             event.accept()
 
@@ -166,12 +243,19 @@ class MMainWindow(QMainWindow):
         self.scan_button.setEnabled(False)
         self.stop_button.setEnabled(True)
         if self.crawl_first_check_box.isChecked():
-            self.web_crawler = WebCrawler()
+            self.url_table.clear_table()
+            self.crawl_first_check_box.setChecked(False)
+            self.run_from_db_check_box.setChecked(True)
+            self.run_from_db_check_box.setEnabled(True)
+            self.web_crawler = WebCrawler(self)
             self.web_crawler.run_crawl(url)
-            dbh = DataBaseHandler()
-            dbh.run_tests_for_links(self.run_tests)
+            self.dbh.run_tests_for_links(self.run_tests)
+
+        elif self.run_from_db_check_box.isChecked():
+            self.dbh.run_tests_for_links(self.run_tests)
         else:
             self.run_tests(url)
+
         self.stop_button.setEnabled(False)
         self.scan_button.setEnabled(True)
         self.cancel = False
@@ -189,18 +273,17 @@ class MMainWindow(QMainWindow):
                 except:
                     print(f"Test {index} failed - something went wrong")
 
+    def add_log(self, url_dict):
+        self.url_table.add_url_to_table(url_dict)
+
     def stop_scan(self):
         if self.web_crawler is None:
             return
-        if type(self.web_crawler.future) is Future:
-            self.web_crawler.future.cancel()
-            self.web_crawler.cancel = True
-        if type(self.run_future) is Future:
-            self.run_future.cancel()
-            self.cancel = True
-        print(self.run_future is None, self.web_crawler.future is None)
-        if self.run_future is None and self.web_crawler.future is None:
-            self.stop_button.setEnabled(False)
-            self.scan_button.setEnabled(True)
+
+        self.web_crawler.cancel = True
+        self.cancel = True
+
+        self.stop_button.setEnabled(False)
+        self.scan_button.setEnabled(True)
 
 # End of MMainWindow class

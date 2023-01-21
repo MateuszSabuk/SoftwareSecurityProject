@@ -5,6 +5,15 @@ class DataBaseHandler:
     def __init__(self):
         self.url_array = []
         self.file_name = "hello"
+        conn = sqlite3.connect(f'{self.file_name}.db')
+        c = conn.cursor()
+
+        c.execute("DROP TABLE IF EXISTS crawled_links")
+        conn.commit()
+
+        # Close the connection to the database
+        c.close()
+        conn.close()
 
     def add_url_req_to_db(self, url_dict):
         # Create a connection to the database
@@ -32,7 +41,6 @@ class DataBaseHandler:
             url_dict["reason"],
         ))
         conn.commit()
-        print(f"{url_dict['url']} added to the database")
 
         # Close the connection to the database
         c.close()
@@ -40,7 +48,9 @@ class DataBaseHandler:
 
     # END OF add_url_req_to_db
 
-    def run_tests_for_links(self, run_tests):
+    def run_tests_for_links(self, run_tests, reset=True):
+        if reset:
+            self.url_array = []
         # Create a connection to the database
         conn = sqlite3.connect(f'{self.file_name}.db')
         c = conn.cursor()
@@ -58,7 +68,6 @@ class DataBaseHandler:
         # Get an array of all the URLs from the crawled_links table
         c.execute("SELECT url FROM crawled_links")
         url_array = [url[0] for url in c.fetchall()]
-
         # Close the connection to the database
         c.close()
         conn.close()
@@ -68,6 +77,6 @@ class DataBaseHandler:
             for url in url_to_test:
                 run_tests(url)
             self.url_array = url_array
-            self.run_tests_for_links(run_tests)
+            self.run_tests_for_links(run_tests, reset=False)
 
     # END OF run_tests_for_links

@@ -9,7 +9,6 @@ if __name__ == '__main__':
     # Gui initialization
     app = MGuiWrapper()
 
-    web_crawler = WebCrawler()
     tests = []
     # Add the tests here ####################
 

@@ -7,8 +7,9 @@ from bs4 import BeautifulSoup
 import sqlite3
 from threading import Thread
 
+from mQtWrapper import mMainWindow
 from mUtilities.DataBaseHandler import DataBaseHandler
-
+# TODO include subdomains
 
 def _get_domain(url):
     url_path = url.split("http://")
@@ -26,19 +27,16 @@ def _get_domain(url):
 
 class WebCrawler:
     checked_urls = []
-    pages_to_do = 0
-    pages_done = 0
     cancel = False
     future = None
 
-    def __init__(self):
+    def __init__(self, main_window_ref):
+        self.main_window_ref = main_window_ref
         self.file_name = "file_name"
         self.dbh = DataBaseHandler()
 
-    def run_crawl(self, url, pages_dict=None):
+    def run_crawl(self, url):
         self.checked_urls = []
-        self.pages_to_do = 0
-        self.pages_done = 0
         self.cancel = False
         with concurrent.futures.ThreadPoolExecutor() as executor:
             self.future = executor.submit(self.crawl, url)
@@ -50,9 +48,6 @@ class WebCrawler:
         # Check if the URL has already been visited
         if any(d['url'] == url for d in self.checked_urls):
             return
-
-        self.pages_to_do = self.pages_to_do + 1
-        print(f"Done: {self.pages_done}/{self.pages_to_do}")
 
         start_time = time.time()
         # Make an HTTP request to the URL
@@ -68,19 +63,22 @@ class WebCrawler:
             "reason": response.reason,
         })
         self.dbh.add_url_req_to_db(self.checked_urls[-1])
+        self.main_window_ref.add_log_signal.emit(self.checked_urls[-1])
+        print(f"Added {url}")
 
         # Parse the HTML content of the page
         soup = BeautifulSoup(response.content, 'html.parser')
 
         # Print the URLs of all the links on the page
-        print(f"At {url} new links:")
         for link in soup.find_all('a'):
             next_link = str(link.get('href'))
             if _get_domain(next_link) is None and next_link[0] == '/':
-                next_link = _get_domain(url) + next_link
+                next_link = str(_get_domain(url)) + str(next_link)
             elif _get_domain(next_link) != _get_domain(url):
                 continue
-            print(next_link)
+            if len(next_link) >= 7:
+                if next_link[0:7] != "http://" and next_link[0:8] != "https://":
+                    next_link = f"http://{next_link}"
             self.crawl(next_link)
 
         if pages_dict is not None:
@@ -91,5 +89,4 @@ class WebCrawler:
                     next_link = url + "/" + path
                 self.crawl(next_link)
 
-        self.pages_done = self.pages_done + 1
         # END OF crawl
