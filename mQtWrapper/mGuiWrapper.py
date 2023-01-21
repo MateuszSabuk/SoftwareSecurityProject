@@ -10,7 +10,7 @@ class MGuiWrapper:
         self.pdf = PdfGen()
 
     def run(self):
-        self.window.show()
+        self.window.showMaximized()
         self.app.exec()
 
     def addTest(self, name: str, function):
