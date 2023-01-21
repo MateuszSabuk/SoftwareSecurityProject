@@ -1,14 +1,23 @@
 import concurrent.futures
 from concurrent.futures import Future
 from threading import Thread
+from urllib.parse import urlparse
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QPlainTextEdit, QGroupBox, QCheckBox, \
-    QSplitter, QScrollArea
+    QSplitter, QScrollArea, QMessageBox
 from PyQt5.QtCore import Qt
 
 from mUtilities.DataBaseHandler import DataBaseHandler
 from mUtilities.WebCrawler import WebCrawler
+
+
+def is_valid_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
 
 
 class _URLInput(QPlainTextEdit):
@@ -42,8 +51,6 @@ class MMainWindow(QMainWindow):
         self.run_future = None
         self.web_crawler = None
         self.tests_to_run = []
-
-        self.windowClosed.connect(self.stop_scan())
 
         self.central = QWidget()
         self.setWindowTitle("Scanner project")
@@ -94,7 +101,6 @@ class MMainWindow(QMainWindow):
 
         top_left_section.layout().addWidget(scroll_area)
 
-
         # Setting window parameters
         self.vbox.setAlignment(Qt.AlignTop)
         self.vbox.setSpacing(10)
@@ -113,6 +119,14 @@ class MMainWindow(QMainWindow):
         # Logic functions
         self.tests = []
 
+    def closeEvent(self, event):
+        result = QMessageBox.question(self, "Confirm Exit...", "Are you sure you want to exit ?",
+                                      QMessageBox.Yes | QMessageBox.No)
+        event.ignore()
+
+        if result == QMessageBox.Yes:
+            self.stop_scan()
+            event.accept()
 
     def addTest(self, name, function):
         test = QCheckBox(name)
@@ -122,11 +136,11 @@ class MMainWindow(QMainWindow):
         self.update()
 
     def startScan(self):
-        pdf = self.wrapper.pdf
-
         url = self.findChild(_URLInput).toPlainText()
-
-        # TODO MATEUSZ: validate url here
+        if not is_valid_url(url):
+            # TODO tell user its not a good url
+            return
+        pdf = self.wrapper.pdf
 
         self.tests_to_run = []
         for checkbox in self.findChildren(QCheckBox):
@@ -172,16 +186,17 @@ class MMainWindow(QMainWindow):
                     print(f"Test {index} failed - something went wrong")
 
     def stop_scan(self):
-        if self.web_crawler.future is not None:
+        if self.web_crawler is None:
+            return
+        if type(self.web_crawler.future) is Future:
             self.web_crawler.future.cancel()
             self.web_crawler.cancel = True
-        if self.run_future is not None:
+        if type(self.run_future) is Future:
             self.run_future.cancel()
             self.cancel = True
         print(self.run_future is None, self.web_crawler.future is None)
         if self.run_future is None and self.web_crawler.future is None:
             self.stop_button.setEnabled(False)
             self.scan_button.setEnabled(True)
-
 
 # End of MMainWindow class
