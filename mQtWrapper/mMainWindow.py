@@ -138,8 +138,12 @@ class MMainWindow(QMainWindow):
     def startScan(self):
         url = self.findChild(_URLInput).toPlainText()
         if not is_valid_url(url):
-            # TODO tell user its not a good url
-            return
+            if not is_valid_url(f"http://{url}"):
+                # TODO tell user its not a good url
+                return
+            url = f"http://{url}"
+            self.findChild(_URLInput).setPlainText(url)
+
         pdf = self.wrapper.pdf
 
         self.tests_to_run = []
