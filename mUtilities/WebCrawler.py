@@ -11,6 +11,7 @@ from mQtWrapper import mMainWindow
 from mUtilities.DataBaseHandler import DataBaseHandler
 # TODO include subdomains
 
+
 def _get_domain(url):
     url_path = url.split("http://")
     if len(url_path) == 1:

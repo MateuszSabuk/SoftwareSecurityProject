@@ -1,57 +1,122 @@
 QMainWindow {
-    background: #545454;
-    margin: 0;
-    padding: 0;
+background: #111;
+margin: 0;
+padding: 0;
 }
 
 _TopBar {
-    background: #454545;
-    min-height: 40px;
+background: #333;
+min-height: 40px;
 }
 
 _URLInput {
-    padding-bottom: -7px;
-    padding-left: 10px;
-    max-height: 40px;
-    font-size: 20px;
-    background: #454545;
-    border: none;
-    border-radius: 5px;
-    color: #eee;
+padding-bottom: -7px;
+padding-left: 10px;
+max-height: 40px;
+font-size: 20px;
+background: #333;
+border: none;
+border-radius: 5px;
+color: #eee;
 }
 
 _TestGroupBox{
-    border: none;
-    background: #454545;
-    padding: 0;
+border: none;
+background: #333;
+padding: 0;
 }
 
 MTestItem{
-    padding: 0;
-    margin: 0;
-    border: none;
+padding: 0;
+margin: 0;
+border: none;
 }
 
 QCheckBox{
-    font-size: 16px;
-    color: #aaa;
+font-size: 24px;
+color: #aaa;
 }
 
 QCheckBox::indicator {
-    width: 20px;
-    height: 20px;
+width: 20px;
+height: 20px;
 }
 /*https://stackoverflow.com/questions/6302428/increase-check-box-size-not-its-text-using-qcheckbox */
 
-_StartScanButton{
-    background: #454545;
-    min-height: 50px;
-    border: none;
-    font-size: 20px;
-    color: #aaa;
+_ActionButton{
+background: #333;
+min-height: 50px;
+border: none;
+font-size: 20px;
+color: #aaa;
 }
 
-_StartScanButton:hover{
-    background: #777;
+_ActionButton:active {
+background-color: #d90429;
+}
+
+_ActionButton:disabled {
+    background: #555;
     color: #222;
 }
+
+_ActionButton:hover{
+background: #9c001b;
+}
+
+_UrlTable {
+background: #333;
+color: #aaa;
+font-size: 16px;
+}
+
+_UrlTable QTableWidget {
+background: #333;
+color: #aaa;
+font-size: 16px;
+}
+
+_UrlTable QHeaderView {
+background: #555;
+color: #000;
+font-size: 16px;
+}
+
+_ConsoleWidget {
+background: #333;
+color: #aaa;
+font-size: 16px;
+}
+
+_ConsoleWidget QTextEdit {
+background: #333;
+color: #aaa;
+font-size: 16px;
+}
+
+_AdditionalAddresses {
+background: #333;
+color: #aaa;
+font-size: 20px;
+}
+
+QLabel{
+color: #aaa;
+font-size: 20px;
+}
+
+_AdditionalAddresses QTextEdit {
+background: #333;
+color: #aaa;
+font-size: 16px;
+}
+
+/* Highlight color */
+
+_UrlTable QTableWidget::item:selected {
+background-color: #d90429;
+}
+
+
+
+

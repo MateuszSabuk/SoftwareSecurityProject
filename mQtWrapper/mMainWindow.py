@@ -1,13 +1,15 @@
 import concurrent.futures
 import datetime
+import re
 import sys
+import time
 from concurrent.futures import Future
 from threading import Thread
 from urllib.parse import urlparse
 
 from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QPlainTextEdit, QGroupBox, QCheckBox, \
-    QSplitter, QScrollArea, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QTextEdit
+    QSplitter, QScrollArea, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QTextEdit, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
 
 from mUtilities.DataBaseHandler import DataBaseHandler
@@ -40,10 +42,15 @@ class _TestGroupBox(QGroupBox):
         self.setLayout(self.vbox)
 
 
-class _StartScanButton(QPushButton):
+class _ActionButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+
+
+class _StartScanButton(_ActionButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.clicked.connect(parent.startScan)
         self.setText("Start test")
 
@@ -74,6 +81,7 @@ class _UrlTable(QWidget):
         self.table.setItem(row_count, 3, QTableWidgetItem(str(url_dict["elapsed"])))
         self.table.setItem(row_count, 4, QTableWidgetItem(str(url_dict["status"])))
         self.table.setItem(row_count, 5, QTableWidgetItem(url_dict["reason"]))
+        self.table.scrollToBottom()
 
     def clear_table(self):
         for i in range(self.table.rowCount(), -1, -1):
@@ -88,12 +96,19 @@ class _ConsoleWidget(QWidget):
         self.text_edit.setLineWrapMode(QTextEdit.NoWrap)
 
         sys.stdout = self
+        title = QLabel()
+        title.setText("Output")
+
         layout = QVBoxLayout()
+        layout.addWidget(title)
         layout.addWidget(self.text_edit)
 
         self.setLayout(layout)
 
     def write(self, text):
+        if text in ["\n", ""]:
+            return
+        time.sleep(0.01)    # so the display doesn't brake
         self.text_edit.append(text)
         cursor = self.text_edit.textCursor()
         cursor.movePosition(QTextCursor.End)
@@ -101,6 +116,20 @@ class _ConsoleWidget(QWidget):
 
     def __del__(self):
         sys.stdout = sys.__stdout__
+
+
+class _AdditionalAddresses(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.text_edit = QTextEdit()
+        title = QLabel()
+        title.setText("Additional paths")
+
+        layout = QVBoxLayout()
+        layout.addWidget(title)
+        layout.addWidget(self.text_edit)
+
+        self.setLayout(layout)
 
 
 # Main
@@ -138,8 +167,6 @@ class MMainWindow(QMainWindow):
 
         self.console.show()
 
-        print("hello")
-
 
         # Create the top-left section and add it to the top section
         top_left_section = QWidget()
@@ -147,23 +174,27 @@ class MMainWindow(QMainWindow):
         top_section.addWidget(top_left_section)
 
         # Create the top-right section and add it to the top section
-        top_right_section = QWidget()
+        top_middle_section = QWidget()
+        top_middle_section.setLayout(QVBoxLayout(self.central))
+        top_right_section = _AdditionalAddresses()
         top_right_section.setLayout(QVBoxLayout(self.central))
+        top_section.addWidget(top_middle_section)
         top_section.addWidget(top_right_section)
-        top_right_section.layout().addWidget(_URLInput(self))
+        top_middle_section.layout().addWidget(_URLInput(self))
         self.scan_button = _StartScanButton(self)
-        top_right_section.layout().addWidget(self.scan_button)
-        self.stop_button = QPushButton(self)
+        top_middle_section.layout().addWidget(self.scan_button)
+        self.stop_button = _ActionButton(self)
+        self.stop_button.setText("Stop test")
         self.stop_button.clicked.connect(self.stop_scan)
         self.stop_button.setEnabled(False)
-        top_right_section.layout().addWidget(self.stop_button)
+        top_middle_section.layout().addWidget(self.stop_button)
         self.crawl_first_check_box = QCheckBox("Crawl first")
         self.crawl_first_check_box.setChecked(True)
-        top_right_section.layout().addWidget(self.crawl_first_check_box)
+        top_middle_section.layout().addWidget(self.crawl_first_check_box)
         self.run_from_db_check_box = QCheckBox("Run from existing db")
         self.run_from_db_check_box.setChecked(False)
         self.run_from_db_check_box.setEnabled(False)
-        top_right_section.layout().addWidget(self.run_from_db_check_box)
+        top_middle_section.layout().addWidget(self.run_from_db_check_box)
 
         # Adding widgets
 
@@ -174,6 +205,7 @@ class MMainWindow(QMainWindow):
         scroll_area.setWidget(self.testGroupBox)
         scroll_area.setWidgetResizable(True)
 
+        top_left_section.layout().addWidget(QLabel("Tests"))
         top_left_section.layout().addWidget(scroll_area)
 
         # Setting window parameters
@@ -185,6 +217,7 @@ class MMainWindow(QMainWindow):
 
         self.setCentralWidget(self.central)
 
+        top_section.setSizes([250, 400, 350])
         self.bottom_section.setSizes([600, 400])
         window_splitter.setSizes([300, 200])
 
