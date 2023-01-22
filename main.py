@@ -12,10 +12,10 @@ if __name__ == '__main__':
     tests = []
     # Add the tests here ####################
 
-    bf = BruteForce.BruteForce("Brute Force")
+    bf = BruteForce.BruteForce()
     tests.append(bf)
     for i in range(0, 60):
-        tests.append(Test.Test(f"Example test name {i}"))
+        tests.append(Test.Test(i))
 
     #########################################
 

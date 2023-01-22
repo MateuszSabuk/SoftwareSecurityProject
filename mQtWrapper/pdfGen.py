@@ -1,35 +1,35 @@
-from fpdf import FPDF
-from datetime import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet
+
+data = [{"a": 1, "b": 2}, {"c": 3, "d": 4}]
 
 
-class PdfGen:
-    def __init__(self):
-        self.font = "Arial"
-        self.headerCounter = 1
-        self.pdf = FPDF('P', 'mm', 'A4')
-        self.pdf.set_margins(25.2, 25.2, 25.2)
-        self.pdf.add_page()
-        self.pdf.set_font(self.font, size=26)
-        self.pdf.cell(200, 10, txt="Scan report", ln=1, align='L')
-        self.pdf.set_font(self.font, size=16)
-        now = datetime.now()
-        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        self.pdf.cell(200, 10, txt=dt_string, ln=1, align="L")
+def create_pdf():
+    story = []
 
-    '''Adds a paragraph to the '''
-    def addP(self, txt: str):
-        self.pdf.set_font(self.font, size=12)
-        self.pdf.multi_cell(0, 6, txt=txt, align="L")
+    # Initialise the simple document template
+    doc = SimpleDocTemplate(f"blog.pdf",
+                            page_size=letter,
+                            bottomMargin=.4 * inch,
+                            topMargin=.4 * inch,
+                            rightMargin=.8 * inch,
+                            leftMargin=.8 * inch)
 
-    def addH(self, txt: str, number=None, numbered=True):
-        if numbered:
-            if number is None:
-                number = self.headerCounter
-                self.headerCounter = number + 1
-            txt = str(number) + '. ' + txt
+    # set the font style
+    styles = getSampleStyleSheet()
+    styleN = styles['Normal']
 
-        self.pdf.set_font(self.font, size=22)
-        self.pdf.cell(200, 10, txt=txt, ln=1, align='L')
+    for count, d in enumerate(data, 1):
+        p_count = Paragraph(f" Data: {count} ")
+        story.append(Spacer(1, 12))
+        story.append(p_count)
+        for k, v in d.items():
+            # extract and add key value pairs to PDF
+            p = Paragraph(k + " : " + str(v), styleN)
+            story.append(p)
+            story.append(Spacer(1, 2))
+    # build PDF using the data
+    doc.build(story)
 
-    def generate(self):
-        self.pdf.output("Report.pdf")

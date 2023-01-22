@@ -191,8 +191,17 @@ class MMainWindow(QMainWindow):
         self.run_from_db_check_box.setChecked(False)
         self.run_from_db_check_box.setEnabled(False)
         top_middle_section.layout().addWidget(self.run_from_db_check_box)
-        self.additional_paths_check_box = QCheckBox("Crawl first")
+        self.additional_paths_check_box = QCheckBox("Use additional paths")
         top_middle_section.layout().addWidget(self.additional_paths_check_box)
+        self.generate_report_button = _ActionButton(self)
+        self.generate_report_button.setText("Generate report")
+        self.generate_report_button.clicked.connect(self.generate_report)
+        self.generate_report_button.setEnabled(False)
+        top_middle_section.layout().addWidget(self.generate_report_button)
+        self.reset_results_button = _ActionButton(self)
+        self.reset_results_button.setText("Reset results")
+        self.reset_results_button.clicked.connect(self.reset_results)
+        top_middle_section.layout().addWidget(self.reset_results_button)
 
         # Adding widgets
 
@@ -252,17 +261,12 @@ class MMainWindow(QMainWindow):
             url = f"http://{url}"
             self.findChild(_URLInput).setPlainText(url)
 
-        pdf = self.wrapper.pdf
-
         self.tests_to_run = []
         for checkbox in self.findChildren(QCheckBox):
             if checkbox.isChecked():
                 for test in self.tests:
                     if test["id"] == checkbox.objectName():
                         self.tests_to_run.append(test["test"])
-        pdf.addP(f"Checked url: {url}")
-        pdf.addH("Tests to be done:")
-        pdf.pdf.add_page()
 
         Thread(target=self.start_run_thread, args=(url,)).start()
 
@@ -273,6 +277,7 @@ class MMainWindow(QMainWindow):
     def run_thread(self, url):
         self.scan_button.setEnabled(False)
         self.stop_button.setEnabled(True)
+        self.generate_report_button.setEnabled(False)
         if self.crawl_first_check_box.isChecked():
             self.url_table.clear_table()
             self.crawl_first_check_box.setChecked(False)
@@ -295,20 +300,18 @@ class MMainWindow(QMainWindow):
             for u in urls:
                 self.run_tests(u)
 
+        self.generate_report_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         self.scan_button.setEnabled(True)
         self.cancel = False
 
     def run_tests(self, url):
-        pdf = self.wrapper.pdf
         for test in self.tests_to_run:
             if not self.cancel:
                 index = str(self.tests_to_run.index(test) + 1)
                 print(f"Running test {index}/{len(self.tests_to_run)}: \"{test.name}\"")
                 try:
-                    pdf.addH(test.name)
-                    test.run(url, pdf)
-                    pdf.generate()
+                    test.run(url)
                 except:
                     print(f"Test {index} failed - something went wrong")
 
@@ -316,14 +319,12 @@ class MMainWindow(QMainWindow):
         self.url_table.add_url_to_table(url_dict)
 
     def stop_scan(self):
-        if self.web_crawler is None:
-            return
-        if self.web_crawler is None:
-            return
-        self.web_crawler.cancel = True
+        if self.web_crawler is not None:
+            self.web_crawler.cancel = True
+            if type(self.web_crawler.future) is Future:
+                self.web_crawler.future.cancel()
         self.cancel = True
-        if type(self.web_crawler.future) is Future:
-            self.web_crawler.future.cancel()
+
         if type(self.run_future) is Future:
             self.run_future.cancel()
 
@@ -336,5 +337,18 @@ class MMainWindow(QMainWindow):
     def get_additional_paths(self):
         text = self.top_right_section.text_edit.toPlainText()
         return text.splitlines()
+
+    def generate_report(self):
+        sys.stdout = sys.__stdout__
+        i = 0
+        for test in [test["test"] for test in self.tests]:
+            i = i + 1
+            print(str(i) + str(test.results))
+        sys.stdout = self.console
+
+    def reset_results(self):
+        for test in [test["test"] for test in self.tests]:
+            test.results = []
+
 
 # End of MMainWindow class
