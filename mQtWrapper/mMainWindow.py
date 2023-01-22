@@ -238,11 +238,11 @@ class MMainWindow(QMainWindow):
             self.stop_scan()
             event.accept()
 
-    def addTest(self, name, function):
-        test = QCheckBox(name)
-        test.setObjectName(str(len(self.tests)))
-        self.tests.append({"id": test.objectName(), "name": name, "function": function})
-        self.testGroupBox.vbox.addWidget(test)
+    def addTest(self, test):
+        test_check_box = QCheckBox(test.name)
+        test_check_box.setObjectName(str(len(self.tests)))
+        self.tests.append({"id": test_check_box.objectName(), "test": test})
+        self.testGroupBox.vbox.addWidget(test_check_box)
         self.update()
 
     def startScan(self):
@@ -261,7 +261,7 @@ class MMainWindow(QMainWindow):
             if checkbox.isChecked():
                 for test in self.tests:
                     if test["id"] == checkbox.objectName():
-                        self.tests_to_run.append(test)
+                        self.tests_to_run.append(test["test"])
         pdf.addP(f"Checked url: {url}")
         pdf.addH("Tests to be done:")
         pdf.pdf.add_page()
@@ -298,10 +298,10 @@ class MMainWindow(QMainWindow):
         for test in self.tests_to_run:
             if not self.cancel:
                 index = str(self.tests_to_run.index(test) + 1)
-                print(f"Running test {index}/{len(self.tests_to_run)}: \"{test['name']}\"")
+                print(f"Running test {index}/{len(self.tests_to_run)}: \"{test.name}\"")
                 try:
-                    pdf.addH(test["name"])
-                    test["function"](url, pdf)
+                    pdf.addH(test.name)
+                    test.run(url, pdf)
                     pdf.generate()
                 except:
                     print(f"Test {index} failed - something went wrong")
@@ -312,11 +312,19 @@ class MMainWindow(QMainWindow):
     def stop_scan(self):
         if self.web_crawler is None:
             return
-
+        if self.web_crawler is None:
+            return
         self.web_crawler.cancel = True
         self.cancel = True
+        if type(self.web_crawler.future) is Future:
+            self.web_crawler.future.cancel()
+        if type(self.run_future) is Future:
+            self.run_future.cancel()
 
         self.stop_button.setEnabled(False)
         self.scan_button.setEnabled(True)
+
+        for test in self.tests_to_run:
+            test.cancel = True
 
 # End of MMainWindow class

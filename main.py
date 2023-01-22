@@ -1,7 +1,7 @@
 from mQtWrapper.mGuiWrapper import MGuiWrapper
 
 # Import your tests here
-from Tests import Test
+from Tests import Test, BruteForce
 from mUtilities.WebCrawler import WebCrawler
 
 # Application beginning
@@ -12,6 +12,8 @@ if __name__ == '__main__':
     tests = []
     # Add the tests here ####################
 
+    bf = BruteForce.BruteForce("Brute Force")
+    tests.append(bf)
     for i in range(0, 60):
         tests.append(Test.Test(f"Example test name {i}"))
 
@@ -19,7 +21,7 @@ if __name__ == '__main__':
 
     # running tests
     for test in tests:
-        app.addTest(test.name, test.run)
+        app.addTest(test)
 
     # Show window
     app.run()
