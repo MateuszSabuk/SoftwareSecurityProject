@@ -22,11 +22,13 @@ class BruteForce(Test):
     def run(self, url: str, pdf: PdfGen):
         self.cancel = False
         pdf.addP(f"url: {url}")
+        print("A")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             self.future = executor.submit(self.bruteCracking, url)
         self.future = None
 
     def bruteCracking(self, url):
+        print("B")
         count = 0
         user_count = 0
         pass_len = len(self.passwords)

@@ -108,11 +108,7 @@ class _ConsoleWidget(QWidget):
     def write(self, text):
         if text in ["\n", ""]:
             return
-        time.sleep(0.01)    # so the display doesn't brake
         self.text_edit.append(text)
-        cursor = self.text_edit.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        self.text_edit.setTextCursor(cursor)
 
     def __del__(self):
         sys.stdout = sys.__stdout__
@@ -176,10 +172,10 @@ class MMainWindow(QMainWindow):
         # Create the top-right section and add it to the top section
         top_middle_section = QWidget()
         top_middle_section.setLayout(QVBoxLayout(self.central))
-        top_right_section = _AdditionalAddresses()
-        top_right_section.setLayout(QVBoxLayout(self.central))
+        self.top_right_section = _AdditionalAddresses()
+        self.top_right_section.setLayout(QVBoxLayout(self.central))
         top_section.addWidget(top_middle_section)
-        top_section.addWidget(top_right_section)
+        top_section.addWidget(self.top_right_section)
         top_middle_section.layout().addWidget(_URLInput(self))
         self.scan_button = _StartScanButton(self)
         top_middle_section.layout().addWidget(self.scan_button)
@@ -195,6 +191,8 @@ class MMainWindow(QMainWindow):
         self.run_from_db_check_box.setChecked(False)
         self.run_from_db_check_box.setEnabled(False)
         top_middle_section.layout().addWidget(self.run_from_db_check_box)
+        self.additional_paths_check_box = QCheckBox("Crawl first")
+        top_middle_section.layout().addWidget(self.additional_paths_check_box)
 
         # Adding widgets
 
@@ -281,13 +279,21 @@ class MMainWindow(QMainWindow):
             self.run_from_db_check_box.setChecked(True)
             self.run_from_db_check_box.setEnabled(True)
             self.web_crawler = WebCrawler(self)
+            if self.additional_paths_check_box.isChecked():
+                self.web_crawler.pages_list = self.get_additional_paths()
             self.web_crawler.run_crawl(url)
             self.dbh.run_tests_for_links(self.run_tests)
 
         elif self.run_from_db_check_box.isChecked():
             self.dbh.run_tests_for_links(self.run_tests)
         else:
-            self.run_tests(url)
+            urls = [url]
+            if self.additional_paths_check_box.isChecked():
+                additional_paths = self.get_additional_paths()
+                if additional_paths is not None:
+                    urls = urls + additional_paths
+            for u in urls:
+                self.run_tests(u)
 
         self.stop_button.setEnabled(False)
         self.scan_button.setEnabled(True)
@@ -326,5 +332,9 @@ class MMainWindow(QMainWindow):
 
         for test in self.tests_to_run:
             test.cancel = True
+
+    def get_additional_paths(self):
+        text = self.top_right_section.text_edit.toPlainText()
+        return text.splitlines()
 
 # End of MMainWindow class
