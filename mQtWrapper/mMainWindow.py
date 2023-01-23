@@ -1,8 +1,5 @@
 import concurrent.futures
 import datetime
-import re
-import sys
-import time
 from concurrent.futures import Future
 from threading import Thread
 from urllib.parse import urlparse
@@ -61,13 +58,7 @@ class _UrlTable(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(["URL", "Start Time", "End Time", "Elapsed Time", "Status", "Reason"])
-        self.table.setColumnWidth(0, 350)
-        self.table.setColumnWidth(1, 150)
-        self.table.setColumnWidth(2, 150)
-        self.table.setColumnWidth(3, 150)
-        self.table.setColumnWidth(4, 100)
-        self.table.horizontalHeader().setStretchLastSection(True)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.table)
         self.setLayout(self.layout)
@@ -86,32 +77,6 @@ class _UrlTable(QWidget):
     def clear_table(self):
         for i in range(self.table.rowCount(), -1, -1):
             self.table.removeRow(i)
-
-
-class _ConsoleWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.text_edit = QTextEdit()
-        self.text_edit.setReadOnly(True)
-        self.text_edit.setLineWrapMode(QTextEdit.NoWrap)
-
-        sys.stdout = self
-        title = QLabel()
-        title.setText("Output")
-
-        layout = QVBoxLayout()
-        layout.addWidget(title)
-        layout.addWidget(self.text_edit)
-
-        self.setLayout(layout)
-
-    def write(self, text):
-        if text in ["\n", ""]:
-            return
-        self.text_edit.append(text)
-
-    def __del__(self):
-        sys.stdout = sys.__stdout__
 
 
 class _AdditionalAddresses(QWidget):
@@ -154,14 +119,11 @@ class MMainWindow(QMainWindow):
         top_section = QSplitter(Qt.Horizontal)
         window_splitter.addWidget(top_section)
 
-        self.bottom_section = QSplitter(Qt.Horizontal)
+        self.bottom_section = QWidget()
         self.url_table = _UrlTable()
-        self.bottom_section.addWidget(self.url_table)
-        self.console = _ConsoleWidget()
-        self.bottom_section.addWidget(self.console)
+        self.bottom_section.setLayout(QVBoxLayout(self.central))
+        self.bottom_section.layout().addWidget(self.url_table)
         window_splitter.addWidget(self.bottom_section)
-
-        self.console.show()
 
 
         # Create the top-left section and add it to the top section
@@ -225,7 +187,6 @@ class MMainWindow(QMainWindow):
         self.setCentralWidget(self.central)
 
         top_section.setSizes([250, 400, 350])
-        self.bottom_section.setSizes([600, 400])
         window_splitter.setSizes([300, 200])
 
         # Get style from css
@@ -241,7 +202,6 @@ class MMainWindow(QMainWindow):
         event.ignore()
 
         if result == QMessageBox.Yes:
-            sys.stdout = sys.__stdout__
             self.stop_scan()
             event.accept()
 
@@ -309,7 +269,7 @@ class MMainWindow(QMainWindow):
         for test in self.tests_to_run:
             if not self.cancel:
                 index = str(self.tests_to_run.index(test) + 1)
-                print(f"Running test {index}/{len(self.tests_to_run)}: \"{test.name}\"")
+                print(f"\nRunning test {index}/{len(self.tests_to_run)}: \"{test.name}\"")
                 try:
                     test.run(url)
                 except:
@@ -339,12 +299,10 @@ class MMainWindow(QMainWindow):
         return text.splitlines()
 
     def generate_report(self):
-        sys.stdout = sys.__stdout__
         i = 0
         for test in [test["test"] for test in self.tests]:
             i = i + 1
             print(str(i) + str(test.results))
-        sys.stdout = self.console
 
     def reset_results(self):
         for test in [test["test"] for test in self.tests]:

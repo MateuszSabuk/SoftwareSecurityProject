@@ -21,13 +21,11 @@ class BruteForce(Test):
 
     def run(self, url: str):
         self.cancel = False
-        print("A")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             self.future = executor.submit(self.bruteCracking, url)
         self.future = None
 
     def bruteCracking(self, url):
-        print("B")
         count = 0
         user_count = 0
         pass_len = len(self.passwords)
@@ -69,12 +67,12 @@ class BruteForce(Test):
                     return
         self.failure(url)
 
-    def csrf_failure(self, url):
+    def failure(self, url):
         result = f'''Brute force scanning done for page {url}\n''' \
                  '''Was a failure'''
         self.results.append((time.time(), result))
 
-    def failure(self, url):
+    def csrf_failure(self, url):
         result = f'''Brute force scanning done for page {url}\n''' \
                  '''Was stopped due to CSRF Token Detected!!\n'''\
                  '''BruteF0rce Not Working This Website'''

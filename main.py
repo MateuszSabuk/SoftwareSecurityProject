@@ -1,3 +1,4 @@
+from Tests.HTTP_Flood import HTTP_Flood
 from mQtWrapper.mGuiWrapper import MGuiWrapper
 
 # Import your tests here
@@ -14,6 +15,8 @@ if __name__ == '__main__':
 
     bf = BruteForce.BruteForce()
     tests.append(bf)
+    http_flood = HTTP_Flood()
+    tests.append(http_flood)
     for i in range(0, 60):
         tests.append(Test.Test(i))
 
