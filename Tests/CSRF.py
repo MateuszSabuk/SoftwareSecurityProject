@@ -10,7 +10,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from requests_html import HTMLSession
 
 
 class CSRF(Test):
@@ -19,7 +18,6 @@ class CSRF(Test):
         self.cancel = False
         self.name = "CSRF"
         self.future = None
-        self.session = HTMLSession()
 
         self.chrome_options = Options()
         self.chrome_options.add_argument("--headless")
@@ -32,6 +30,9 @@ class CSRF(Test):
         self.future = None
 
     def check_CSRF(self, url):
+        if self.cancel:
+            self.cancel_result(url)
+            return
         # some actions start with / , when adding home page sometimes it ends with / to avoid having the two colide
         # I deleted one
         if url.endswith('/'):
@@ -47,6 +48,9 @@ class CSRF(Test):
             # find all the links in a page with a form
             links = soup.find_all("a", href=True)
             for link in links:
+                if self.cancel:
+                    self.cancel_result(url)
+                    return
                 # from all the links get the text to search for on containing the word password
                 link_link = link.get("href")
 
@@ -68,6 +72,9 @@ class CSRF(Test):
                         forgot_soup = BeautifulSoup(self.driver.page_source, "html.parser")
                         forgot_forms = forgot_soup.find_all("form")
                         for form in forgot_forms:
+                            if self.cancel:
+                                self.cancel_result(url)
+                                return
                             #get action,method,input type and name from the forgot password form
                             action = form.attrs.get("action")
                             new_action = action
@@ -75,6 +82,9 @@ class CSRF(Test):
                             inputs = []
                             inputs_submit = []
                             for input_tag in form.find_all("input"):
+                                if self.cancel:
+                                    self.cancel_result(url)
+                                    return
                                 input_type = input_tag.attrs.get("type", "text")
                                 input_name = input_tag.attrs.get("name")
                                 input_value = input_tag.attrs.get("value")
@@ -98,6 +108,9 @@ class CSRF(Test):
                             #getting all the input fields together
                             i = 0
                             while i < len(inputs):
+                                if self.cancel:
+                                    self.cancel_result(url)
+                                    return
                                 form_middle_part = ("".join(inputs[i]))
                                 i=i+1
 
@@ -115,5 +128,10 @@ class CSRF(Test):
 
                         # This represents the user trying to open the malicious form
                         x = requests.get("http://localhost:8000/page.html")
-                        if x.status_code==200:
+                        if x.status_code == 200:
                             print("CSRF Vulnerability found on link:"+new_action)
+
+    def cancel_result(self, url):
+        result = f'''CSFR for page {url}\n''' \
+                 '''Was canceled\n'''
+        self.results.append((time.time(), result))

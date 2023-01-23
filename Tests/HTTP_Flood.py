@@ -13,6 +13,7 @@ from Tests.Test import Test
 class HTTP_Flood(Test):
     def __init__(self):
         super().__init__()
+        self.thread_num_mutex = None
         self.cancel = False
         self.name = "HTTP Flood"
         self.future = None
@@ -29,6 +30,10 @@ class HTTP_Flood(Test):
         self.future = None
 
     def start(self, url):
+        if self.cancel:
+            self.cancel_result(url)
+            return
+
         # Convert FQDN to IP
         try:
             host_name = str(url).replace("https://", "").replace("http://", "").replace("www.", "")
@@ -45,6 +50,10 @@ class HTTP_Flood(Test):
             if self.cancel:
                 self.cancel_result(url)
                 return
+
+            if self.cancel:
+                self.cancel_result(url)
+                return
             t1 = threading.Thread(target=self.attack)
             t1.start()
             all_threads.append(t1)
@@ -53,6 +62,10 @@ class HTTP_Flood(Test):
             time.sleep(0.05)
 
         for current_thread in all_threads:
+            if self.cancel:
+                self.cancel_result(url)
+                return
+
             if self.cancel:
                 self.cancel_result(url)
                 return
