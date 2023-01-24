@@ -135,8 +135,7 @@ class CSRF(Test):
     def success(self, url, v_url):
         result = f'''CSFR scan done for page {url}\n'''\
                 '''Was a success - CSRF Vulnerability found on link:\n'''\
-                f'''{v_url}\n'''\
-                f'''page.html generated'''
+                f'''{v_url}'''
         self.results.append((time.time(), result))
 
     def cancel_result(self, url):

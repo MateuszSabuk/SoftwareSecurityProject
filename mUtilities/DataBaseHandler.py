@@ -4,7 +4,7 @@ import sqlite3
 class DataBaseHandler:
     def __init__(self):
         self.url_array = []
-        self.file_name = "hello"
+        self.file_name = "urls_database"
         conn = sqlite3.connect(f'{self.file_name}.db')
         c = conn.cursor()
 

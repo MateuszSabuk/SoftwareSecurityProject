@@ -1,5 +1,6 @@
 import concurrent.futures
 import datetime
+import os
 from concurrent.futures import Future
 from threading import Thread
 from urllib.parse import urlparse
@@ -9,6 +10,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QPla
     QSplitter, QScrollArea, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QTextEdit, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
 
+from mQtWrapper.pdfGen import generate_pdf
 from mUtilities.DataBaseHandler import DataBaseHandler
 from mUtilities.WebCrawler import WebCrawler
 
@@ -114,7 +116,10 @@ class MMainWindow(QMainWindow):
 
         self.central = QWidget()
         self.setWindowTitle("Scanner project")
-        self.setWindowIcon(QIcon('mQtWrapper\\windowIcon.png'))
+        if os.path.exists(r"windowIcon.png"):
+            self.setWindowIcon(QIcon(r'windowIcon.png'))
+        else:
+            self.setWindowIcon(QIcon(r'mQtWrapper\windowIcon.png'))
         self.wrapper = parent
         self.vbox = QVBoxLayout(self.central)
 
@@ -140,7 +145,6 @@ class MMainWindow(QMainWindow):
         top_middle_section = QWidget()
         top_middle_section.setLayout(QVBoxLayout(self.central))
         self.top_right_section = _AdditionalAddresses()
-        self.top_right_section.setLayout(QVBoxLayout(self.central))
         top_section.addWidget(top_middle_section)
         top_section.addWidget(self.top_right_section)
         top_middle_section.layout().addWidget(_URLInput(self))
@@ -195,8 +199,12 @@ class MMainWindow(QMainWindow):
         window_splitter.setSizes([300, 200])
 
         # Get style from css
-        with open(r'mQtWrapper\mainWindow.css', 'r') as style:
-            self.setStyleSheet(style.read())
+        if os.path.exists(r"\mainWindow.css"):
+            with open(r"mainWindow.css", "r") as style:
+                self.setStyleSheet(style.read())
+        else:
+            with open(r'mQtWrapper\mainWindow.css', 'r') as style:
+                self.setStyleSheet(style.read())
 
         # Logic functions
         self.tests = []
@@ -304,10 +312,8 @@ class MMainWindow(QMainWindow):
         return text.splitlines()
 
     def generate_report(self):
-        i = 0
-        for test in [test["test"] for test in self.tests]:
-            i = i + 1
-            print(str(i) + str(test.results))
+        generate_pdf([test["test"] for test in self.tests])
+
 
     def reset_results(self):
         for test in [test["test"] for test in self.tests]:

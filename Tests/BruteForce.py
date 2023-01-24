@@ -1,4 +1,5 @@
 import concurrent.futures
+import os.path
 import time
 
 from Tests.Test import Test
@@ -12,10 +13,16 @@ class BruteForce(Test):
     def __init__(self):
         super().__init__()
         self.cancel = False
-        with open(r"dictionaries\usernames.txt", "r") as usernames:
-            self.usernames = [*usernames]
-        with open(r"dictionaries\passwords.txt", "r") as passwords:
-            self.passwords = [*passwords]
+        if os.path.exists(r"..\dictionaries\usernames.txt") and os.path.exists(r"..\dictionaries\passwords.txt"):
+            with open(r"..\dictionaries\usernames.txt", "r") as usernames:
+                self.usernames = [*usernames]
+            with open(r"..\dictionaries\passwords.txt", "r") as passwords:
+                self.passwords = [*passwords]
+        else:
+            with open(r"dictionaries\usernames.txt", "r") as usernames:
+                self.usernames = [*usernames]
+            with open(r"dictionaries\passwords.txt", "r") as passwords:
+                self.passwords = [*passwords]
         self.name = "Brute Force"
         self.future = None
 
