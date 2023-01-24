@@ -9,7 +9,6 @@ from threading import Thread
 
 from mQtWrapper import mMainWindow
 from mUtilities.DataBaseHandler import DataBaseHandler
-# TODO include subdomains
 
 
 def _get_domain(url):

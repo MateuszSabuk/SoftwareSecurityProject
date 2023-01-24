@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 from reportlab.lib import colors
@@ -65,6 +66,7 @@ def generate_pdf(tests):
     # Build the PDF
     pdf_file.build(elements)
     print("Report Generated!")
+    os.startfile("Scan Report.pdf")
 
 
 def get_all_data():

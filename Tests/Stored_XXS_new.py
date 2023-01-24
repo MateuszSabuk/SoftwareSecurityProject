@@ -1,6 +1,6 @@
 import concurrent.futures
 import time
-from Tests.Test import Test
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -10,12 +10,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
+from Tests.Test import Test
 
-class Stored_XSS(Test):
+
+class Stored_XSS_DVWS(Test):
     def __init__(self):
         super().__init__()
         self.cancel = False
-        self.name = "Stored XSS"
+        self.name = "Stored XSS DVWS"
         self.future = None
 
     def run(self, url: str):
@@ -26,21 +28,57 @@ class Stored_XSS(Test):
 
     def xssStored(self, url):
         message = "alert found --> XSS stored attack detected on page: " + url
-        if self.get_form_details(url) != message:
-            self.get_form_details(url)
+        self.get_form_details_stored(url)
+        self.get_form_details_stored(url)
         if self.cancel:
+            self.cancel_result(url)
             return
 
-    def get_form_details(self, url):
-        if self.cancel:
-            return
-
+    def authenticate_stored(self, url):
+        message = ""
         chrome_options = Options()
         chrome_options.add_argument("--headless")
+        chrome_options.add_experimental_option("detach", True)
+        driver = webdriver.Chrome(options=chrome_options)
 
-        driver = webdriver.Chrome(chrome_options=chrome_options)
+        driver.get("http://127.0.0.1/dvwa/login.php")
+        driver.find_element("name", "username").send_keys("admin")
+        driver.find_element("name", "password").send_keys("password")
+        driver.find_element("name", "Login").click()
+
+        # get difficulty to low
+        driver.get("http://127.0.0.1/dvwa/security.php")
+        ddelement = Select(driver.find_element(By.XPATH, "//select[@name='security']"))
+        ddelement.select_by_visible_text('Low')
+        driver.find_element("name", "seclev_submit").click()
         driver.get(url)
+        try:
+            WebDriverWait(driver, 5).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            alert.accept()
+            print("nullifying alert")
+            message = "alert found --> XSS stored attack detected on page: " + url
+            print(message)
+            return message
+        except TimeoutException:
+            soup = BeautifulSoup(driver.page_source, "html.parser")
 
+        return driver.get(url), soup, driver, message
+
+    def get_form_details_stored(self, url):
+
+        if self.cancel:
+            return
+        if self.authenticate_stored(url) == "alert found --> XSS stored attack detected on page: " + url:
+            return
+        if "dvwa" in str(url):
+            driver = self.authenticate_stored(url)[2]
+            self.authenticate_stored(url)[0]
+        else:
+            chrome_options: Options = Options()
+            chrome_options.add_argument("--headless")
+            driver = webdriver.Chrome(chrome_options=chrome_options)
+            driver.get(url)
 
         try:
             WebDriverWait(driver, 5).until(EC.alert_is_present())
@@ -52,24 +90,26 @@ class Stored_XSS(Test):
             self.success(url)
             return message
         except TimeoutException:
-            print("no alert found on continuing...")
-            soup = BeautifulSoup(driver.page_source, "html.parser")
+
+            if "dvwa" in str(url):
+                soup = self.authenticate_stored(url)[1]
+            else:
+                soup = BeautifulSoup(driver.page_source, "html.parser")
+
             forms = soup.find_all("form")
             for form in forms:
-
-        # get the form action (target url)
-        #action = form.attrs.get("action", "").lower()
-        # get the form method (POST, GET, etc.)
-        #method = form.attrs.get("method", "get").lower()
-        # get all the input details such as type and name
+                # get the form action (target url)
+                # action = form.attrs.get("action", "").lower()
+                # get the form method (POST, GET, etc.)
+                # method = form.attrs.get("method", "get").lower()
+                # get all the input details such as type and name
                 inputs = []
-                for input_tag in form.find_all("input"):
-                    if self.cancel:
-                        return
-
-                    input_type = input_tag.attrs.get("type", "text")
-                    input_name = input_tag.attrs.get("name")
-                    inputs.append({"type": input_type, "name": input_name})
+            for input_tag in form.find_all("input"):
+                if self.cancel:
+                    return
+                input_type = input_tag.attrs.get("type", "text")
+                input_name = input_tag.attrs.get("name")
+                inputs.append({"type": input_type, "name": input_name})
 
             for textarea in form.find_all("textarea"):
                 if self.cancel:
@@ -104,8 +144,9 @@ class Stored_XSS(Test):
                 if not select_default_value and select_options:
                     # if the default is not set, and there are options, take the first option as default
                     select_default_value = select_options[0]
-            # add the select to the inputs list
-                inputs.append({"type": select_type, "name": select_name, "values": select_options, "value": select_default_value})
+                # add the select to the inputs list
+                inputs.append(
+                    {"type": select_type, "name": select_name, "values": select_options, "value": select_default_value})
 
             print(inputs)
 
@@ -113,16 +154,18 @@ class Stored_XSS(Test):
         while i < len(inputs):
             if self.cancel:
                 return
-
             if (inputs[i]['type'] == 'textarea'):
-               driver.find_element("name",inputs[i]['name']).send_keys("<script>alert('hi')</script>")
+                driver.find_element("name", inputs[i]['name']).send_keys("<script>alert('hi')</script>")
 
             if (inputs[i]['type'] == 'text'):
-               driver.find_element("name", inputs[i]['name']).send_keys("Michael")
+                driver.find_element("name", inputs[i]['name']).send_keys("Michael")
 
             i = i + 1
 
         driver.find_element(By.XPATH, "//input[@type ='submit']").click()
+
+        return message
+
 
     def success(self, url):
         result = f'''Stored XXS Vulnerability discovered for page {url}'''
