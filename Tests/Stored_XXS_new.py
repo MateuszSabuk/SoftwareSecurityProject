@@ -30,9 +30,6 @@ class Stored_XSS_DVWS(Test):
         message = "alert found --> XSS stored attack detected on page: " + url
         self.get_form_details_stored(url)
         self.get_form_details_stored(url)
-        if self.cancel:
-            self.cancel_result(url)
-            return
 
     def authenticate_stored(self, url):
         message = ""
@@ -59,16 +56,15 @@ class Stored_XSS_DVWS(Test):
             print("nullifying alert")
             message = "alert found --> XSS stored attack detected on page: " + url
             print(message)
+            self.success(url)
             return message
+            return
         except TimeoutException:
             soup = BeautifulSoup(driver.page_source, "html.parser")
 
         return driver.get(url), soup, driver, message
 
     def get_form_details_stored(self, url):
-
-        if self.cancel:
-            return
         if self.authenticate_stored(url) == "alert found --> XSS stored attack detected on page: " + url:
             return
         if "dvwa" in str(url):
@@ -89,6 +85,7 @@ class Stored_XSS_DVWS(Test):
             print(message)
             self.success(url)
             return message
+            return
         except TimeoutException:
 
             if "dvwa" in str(url):
@@ -105,16 +102,11 @@ class Stored_XSS_DVWS(Test):
                 # get all the input details such as type and name
                 inputs = []
             for input_tag in form.find_all("input"):
-                if self.cancel:
-                    return
                 input_type = input_tag.attrs.get("type", "text")
                 input_name = input_tag.attrs.get("name")
                 inputs.append({"type": input_type, "name": input_name})
 
             for textarea in form.find_all("textarea"):
-                if self.cancel:
-                    return
-
                 # get the name attribute
                 textarea_name = textarea.attrs.get("name")
                 # set the type as textarea
@@ -125,9 +117,6 @@ class Stored_XSS_DVWS(Test):
                 inputs.append({"type": textarea_type, "name": textarea_name, "value": textarea_value})
             # put everything to the resulting dictionary
             for select in form.find_all("select"):
-                if self.cancel:
-                    return
-
                 select_name = select.attrs.get("name")
                 select_type = "select"
                 select_options = []
@@ -152,8 +141,6 @@ class Stored_XSS_DVWS(Test):
 
         i = 0
         while i < len(inputs):
-            if self.cancel:
-                return
             if (inputs[i]['type'] == 'textarea'):
                 driver.find_element("name", inputs[i]['name']).send_keys("<script>alert('hi')</script>")
 
@@ -163,9 +150,6 @@ class Stored_XSS_DVWS(Test):
             i = i + 1
 
         driver.find_element(By.XPATH, "//input[@type ='submit']").click()
-
-        return message
-
 
     def success(self, url):
         result = f'''Stored XXS Vulnerability discovered for page {url}'''
