@@ -47,6 +47,7 @@ class Stored_XSS(Test):
             print("nullifying alert")
             message = "alert found --> XSS stored attack detected on page: " + url
             print(message)
+            self.success(url)
             return message
         except TimeoutException:
             print("no alert found on continuing...")
@@ -120,6 +121,10 @@ class Stored_XSS(Test):
             i = i + 1
 
         driver.find_element(By.XPATH, "//input[@type ='submit']").click()
+
+    def success(self, url):
+        result = f'''Stored XXS Vulnerability discovered for page {url}'''
+        self.results.append((time.time(), result))
 
     def cancel_result(self, url):
         result = f'''Stored XSS for page {url}\n'''\

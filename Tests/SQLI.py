@@ -69,6 +69,7 @@ class SQLI(Test):
                     res = self.s.get(url, params=data)
                 if self.vulnerable(res):
                     print("SQL Injection attack vulnerability detected in link:", url)
+                    self.success(url)
                 else:
                     break
 
@@ -104,6 +105,10 @@ class SQLI(Test):
             if error in response.content.decode().lower():
                 return True
         return False
+
+    def success(self, url):
+        result = f'''SQL Injection attack vulnerability detected in link {url}'''
+        self.results.append((time.time(), result))
 
     def cancel_result(self, url):
         result = f'''SQL Injection for page {url}\n''' \

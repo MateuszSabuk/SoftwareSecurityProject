@@ -19,12 +19,13 @@ class HTTP_Flood(Test):
         self.future = None
         self.host_name = ""
         self.ip_ad = ""
-        self.port_num = 80
+        self.port_num = 8000
         self.nb_requests = 1000
         self.thread_num = 0
 
     def run(self, url: str):
         self.cancel = False
+        self.thread_num = 0
         with concurrent.futures.ThreadPoolExecutor() as executor:
             self.future = executor.submit(self.start, url)
         self.future = None

@@ -45,6 +45,7 @@ class Reflected_XSS(Test):
             if js_script in content:
                 print(f"[+] XSS Detected on {url}")
                 print(f"[*] Form details:")
+                self.success(url)
                 pprint(form_details)
                 is_vulnerable = True
                 # won't break because we want to print other available vulnerable forms
@@ -118,6 +119,10 @@ class Reflected_XSS(Test):
         else:
             # GET request
             return requests.get(target_url, params=data)
+
+    def success(self, url):
+        result = f'''Reflected XXS Vulnerability discovered for page {url}'''
+        self.results.append((time.time(), result))
 
     def cancel_result(self, url):
         result = f'''Reflected XSS for page {url}\n''' \

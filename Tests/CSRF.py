@@ -130,6 +130,14 @@ class CSRF(Test):
                         x = requests.get("http://localhost:8000/page.html")
                         if x.status_code == 200:
                             print("CSRF Vulnerability found on link:"+new_action)
+                        self.success(url, new_action)
+
+    def success(self, url, v_url):
+        result = f'''CSFR scan done for page {url}\n'''\
+                '''Was a success - CSRF Vulnerability found on link:\n'''\
+                f'''{v_url}\n'''\
+                f'''page.html generated'''
+        self.results.append((time.time(), result))
 
     def cancel_result(self, url):
         result = f'''CSFR for page {url}\n''' \

@@ -124,6 +124,7 @@ class DOM_XSS(Test):
                         if str(input_name['name']) in submitted_url :
                             print("DOM XXS Vulnerability discovered in the input field with name is: "+ str(input_name['name']))
                             url_val.append({"type": input_name['type'], "name": input_name['name'],"value":input_name['value']})
+                            self.success(url, input_name)
 
 
         # search through all the names of the input and see if they appear in <script>
@@ -145,6 +146,11 @@ class DOM_XSS(Test):
 
                                         if str(match) in str(script) and str(val['name']) in str(script):
                                             print("the field is related to Vulnerable JS Components: "+str(match)+ " "+ str(val["name"]))
+
+    def success(self, url, input_name):
+        result = f'''DOM XXS Vulnerability discovered for page {url}\n'''\
+                f'''in the input field with name: {input_name['name']}'''
+        self.results.append((time.time(), result))
 
     def cancel_result(self, url):
         result = f'''DOM XSS for page {url}\n''' \
